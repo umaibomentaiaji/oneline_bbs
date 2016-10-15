@@ -287,3 +287,8 @@ img {
                         -ms-filter: alpha(opacity=60);
                         filter: alpha(opacity=60);
                     }
+
+
+input[type=submit]{
+font-family: FontAwesome;
+}
