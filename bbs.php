@@ -3,13 +3,30 @@
   
 
   //1.データベースに接続する
-  $dsn = 'mysql:dbname=oneline_bbs;host=localhost';   //同じサーバに入っていたらlocalhost
-  $user = 'root';   //xampで決まってる
-  $password='';     //xampで決まってる
+  // $dsn = 'mysql:dbname=oneline_bbs;host=localhost';   //同じサーバに入っていたらlocalhost
+  // $user = 'root';   //xampで決まってる
+  // $password='';     //xampで決まってる
+  $dsn = 'mysql:dbname=LAA0792978-onelinebbs;host=mysql102.phy.lolipop.lan';   //同じサーバに入っていたらlocalhost
+  $user = 'LAA0792978';   //xampで決まってる
+  $password='urepamin1012';     //xampで決まってる
   $dbh = new PDO($dsn, $user, $password);
   $dbh->query('SET NAMES utf8');    //これがないと文字化けしちゃうよ！
 
-  //POST送信が行われた時
+  //action = updateがGET送信で送られてきた時
+  if(!empty($_GET)) && ($_GET['action']) == 'update')){
+  $nickname = $_POST['nickname'];
+  $comment = $_POST['comment'];
+  //2.SQL文作成（SELECT文）
+  $sql = ""
+}
+  
+
+
+
+
+
+
+  //登録処理　POST送信が行われた時
   if(!empty($_POST)){
         $nickname = $_POST['nickname'];
         $comment = $_POST['comment'];     
@@ -19,14 +36,6 @@
         $stmt = $dbh->prepare($sql);
         $stmt->execute();  
   }
-  
-  //SQL文の作成（SELECT文）
-  $sql = 'SELECT * FROM `posts` order by created DESC';
-  
-  //SELECT文実行
-  $stmt = $dbh->prepare($sql);
-  $stmt->execute();
-
 
   //action = deleteがget送信で送られてきた時
   if (!empty($_GET) && ($_GET['action'] == 'delete')){
@@ -43,23 +52,46 @@
     exit;
 
   }
+
+  //action = editがget送信で送られて来た時
+  if (!empty($_GET) && ($_GET['action'] == 'edit')){
+    //SQLのedit文
+    $sql = "SELECT * FROM `posts` WHERE `id` = ".$_GET['id'];
+
+    //SELECT文実行
+    $stmt = $dbh->prepare($sql);
+    $stmt->execute();
+
+    $edit_data = $stmt->fetch(PDO::FETCH_ASSOC);
+  }
+
+
+
   
+  //右側一覧表示　SQL文の作成（SELECT文）
+  $sql = 'SELECT * FROM `posts` order by created DESC';
+  
+  //SELECT文実行
+  $stmt = $dbh->prepare($sql);
+  $stmt->execute();
+
   //変数にDBから取得したデータを格納
-  
+
   //格納する変数の初期化
   $posts = array();
-  
-  //繰り返し文でデータの取得 fetchをすることで連想配列の形でデータを取得することができる
-  while(1){                                 //1の意味忘れたけど
-    $rec = $stmt->fetch(PDO::FETCH_ASSOC);  
+
+   //繰り返し文でデータの取得 fetchをすることで連想配列の形でデータを取得することができる
+  while(1){                                 //1無限ループするということ
+    $rec = $stmt->fetch(PDO::FETCH_ASSOC); 　 
     if ($rec == false){
       //データを最後まで取得したので終了
       break;
     }
+
     //取得したデータを配列に格納しておく
     $posts[] = $rec;
   }
-
+ 
   //データベースを切断する
   $dbh = null;
 
@@ -110,28 +142,40 @@
 
       <!-- 画面左側 -->
       <div class="col-md-4 content-margin-top">
+
+
+      
+
+        
+
         <!-- form部分 -->
         <form action="bbs.php" method="post">
           <!-- nickname -->
           <div class="form-group">
             <div class="input-group">
-              <input type="text" name="nickname" class="form-control" id="validate-text" placeholder="nickname" required>
+              <input type="text" name="nickname" class="form-control" id="validate-text" placeholder="<?php echo $edit_data['nickname']; ?>" required>
               <span class="input-group-addon danger"><span class="glyphicon glyphicon-remove"></span></span>
             </div>
           </div>
           <!-- comment -->
           <div class="form-group">
             <div class="input-group" data-validate="length" data-length="4">
-              <textarea type="text" class="form-control" name="comment" id="validate-length" placeholder="comment" required></textarea>
+              <textarea type="text" class="form-control" name="comment" id="validate-length" placeholder="<?php echo $edit_data['comment']; ?>" required></textarea>
               <span class="input-group-addon danger"><span class="glyphicon glyphicon-remove"></span></span>
             </div>
           </div>
           <!-- つぶやくボタン -->
-          <button type="submit" class="btn btn-primary col-xs-12" disabled>つぶやく</button>
+          <button type="submit" class="btn btn-primary col-xs-12" disabled>
+          <?php
+         if (!isset($edit_data)){
+            echo '更新する';
+         }else{
+            echo 'つぶやく';
+         }
+         ?>
+         </button>
         </form>
       </div>
-
-
 
 
 
@@ -144,13 +188,16 @@
           $created = strtotime($post_each['created']);
           //書式を変換
           $created = date('Y/m/d',$created);
+
           ?>
                   <article class="timeline-entry">
                       <div class="timeline-entry-inner">
+                        <a href="bbs.php?id=<?php echo $post_each['id']; ?>&action=edit">
                           <div class="timeline-icon bg-success">
                               <i class="entypo-feather"></i>
                               <i class="fa fa-cogs"></i>
                           </div>
+                          </a>
                         <div class="timeline-label">
                           <h2>
                             <a href="#"><?php echo $post_each['nickname']; ?></a>
@@ -162,22 +209,6 @@
 
                       <a href="bbs.php?id=<?php echo $post_each['id']; ?>&action=delete" ><i class="fa fa-trash-o" aria-hidden="true"></i></a>
 
-<!--
-<script>
-    /**
-     * 確認ダイアログの返り値によりフォーム送信
-    */
-    // function submitChk () {
-    //     /* 確認ダイアログ表示 */
-    //     var flag = confirm ( "送信してもよろしいですか？\n\n送信したくない場合は[キャンセル]ボタンを押して下さい");
-    //     /* send_flg が TRUEなら送信、FALSEなら送信しない */
-    //     return flag;
-    }
-</script>
-<form name="form3" method="post" action="content/demo/test.php" onsubmit="return submitChk()">
-  
-    <input type="submit" name="submit" value="&#xf014;" class="btn_trush">
-</form>-->
                     </div>
                   </article>
 
@@ -197,6 +228,7 @@
   </div>
 
 
+
    
   <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
@@ -205,6 +237,7 @@
   <script src="assets/js/form.js"></script>
 </body>
 </html>
+
 
 
 
